@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block headscripts %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+{% endblock headscripts %}
+{% block style %}
+  .modal-dialog {
+    max-width: 1000px
+  }
+{% endblock style %}
+{% block title %}
+  Журнал №{{ journal.pk }} 
+{% endblock %}
+{% block content %}
+<div class="media text-muted pt-3">
+  {% if error %}
+  <div class="alert alert-danger" role="alert">
+    {{error}}
+  </div>
+  {% endif %}
+  <div class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <h2>Журнал №{{ journal.pk }} </h2>
+        <div>
+            <a class="btn btn-primary" href="{% url 'symbols_analyzer:get_paper_gradebook' journal.pk %}" title="Скачать бланк журнала"><span class="fas fa-table fa-lg"></span></a>
+            <button type="button" title="Загрузить журнала" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+              <span class="fas fa-eye fa-lg">
+            </button>
+        </div>
+      </div>
+  </div>
+  </div>
+<div class="my-3 bg-white rounded box-shadow table-responsive" style="padding-right: 10px;">
+<table class="table table-bordered">
+  <thead>
+    <tr>
+        <td>ФИО</td>
+        {% for lesson in lessons_num %}
+            <td>{{lesson}}</td>
+        {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in table %}
+        <tr>
+            <td>{{row.0}}</td>
+            {% for key, value in row.1.items  %}
+            <td>{{value}}</td>
+            {% endfor %}
+        </tr>
+
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post"  enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="staticBackdropLabel">Загрузить фотографию журнала</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <h5>Выберите изображение</h5>
+            <input type="file" name="file" id="file" required/>
+          </div>
+          <div class="mb-3">
+            <h5>Нужен поворот изображения?</h5>
+            <input type="radio" class="btn-check" required id="id_rotation_0" name="rotation" value="rotationNone" autocomplete="off">
+            <label class="btn btn-secondary" for="id_rotation_0">Не поворачивать</label>
+            <input type="radio" class="btn-check" required id="id_rotation_1" name="rotation" value="rotationMinus90" autocomplete="off">
+            <label class="btn btn-secondary" for="id_rotation_1">-90°</label>
+            <input type="radio" class="btn-check" required id="id_rotation_2" name="rotation" value="rotationPlus90" autocomplete="off">
+            <label class="btn btn-secondary" for="id_rotation_2">90°</label>
+            <input type="radio" class="btn-check" required id="id_rotation_3" name="rotation" value="rotation180" autocomplete="off">
+            <label class="btn btn-secondary" for="id_rotation_3">180°</label>
+          </div>
+          <div class="img-preview" style="display: none;">
+            <div id="imgPreview"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Загрузить</button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  let rotationNoneBtn = document.getElementById("id_rotation_0")
+  let rotationMinus90Btn = document.getElementById("id_rotation_1")
+  let rotationPlus90Btn = document.getElementById("id_rotation_2")
+  let rotation180Btn = document.getElementById("id_rotation_3")
+  function filePreview(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            $('#imgPreview + img').remove();
+            $('#imgPreview').after('<img src="'+e.target.result+'" class="img-fluid" id="pic-view" />');
+            rotationNoneBtn.checked = false;
+            rotationMinus90Btn.checked = false;
+            rotationPlus90Btn.checked = false;
+            rotation180Btn.checked = false;
+            rotationNoneBtn.disabled = false;
+            rotationMinus90Btn.disabled = false;
+            rotationPlus90Btn.disabled = false;
+            rotation180Btn.disabled = false;
+        };
+        reader.readAsDataURL(input.files[0]);
+        $('.img-preview').show();
+    }else{
+        $('#imgPreview + img').remove();
+        $('.img-preview').hide();
+    }
+  }
+  $("#file").change(function (){
+    filePreview(this);
+  });
+  rotationNoneBtn.addEventListener("click", () => {
+    rotationNoneBtn.checked = true;
+    rotationMinus90Btn.disabled = true;
+    rotationPlus90Btn.disabled = true;
+    rotation180Btn.disabled = true;
+  });
+  rotationMinus90Btn.addEventListener("click", () => {
+    rotationMinus90Btn.checked = true;
+    rotationNoneBtn.disabled = true;
+    rotationPlus90Btn.disabled = true;
+    rotation180Btn.disabled = true;
+    let picture = $("#pic-view")
+    let pictureWidth = picture[0].offsetWidth
+    let pictureHeight = picture[0].offsetHeight
+    let imgPrev = $(".img-preview")[0]
+    document.getElementsByClassName('img-preview')[0].setAttribute("style","height:"+pictureWidth+"px")
+    picture.css(
+      {
+        'transform': 'rotate(-90deg) translateX(-'+(Math.abs(pictureWidth - pictureHeight))/2+'px)',
+      }
+    );
+  });
+  rotationPlus90Btn.addEventListener("click", () => {
+    rotationPlus90Btn.checked = true;
+    rotationNoneBtn.disabled = true;
+    rotationMinus90Btn.disabled = true;
+    rotation180Btn.disabled = true;
+    let picture = $("#pic-view")
+    let pictureWidth = picture[0].offsetWidth
+    let pictureHeight = picture[0].offsetHeight
+    let imgPrev = $(".img-preview")[0]
+    document.getElementsByClassName('img-preview')[0].setAttribute("style","height:"+pictureWidth+"px")
+    picture.css(
+      {
+        'transform': 'rotate(90deg) translateX('+(Math.abs(pictureWidth - pictureHeight))/2+'px)',
+      }
+    );
+  });
+  rotation180Btn.addEventListener("click", () => {
+    rotation180Btn.checked = true;
+    rotationNoneBtn.disabled = true;
+    rotationMinus90Btn.disabled = true;
+    rotationPlus90Btn.disabled = true;
+    let picture = $("#pic-view")
+    let pictureWidth = picture[0].offsetWidth
+    let pictureHeight = picture[0].offsetHeight
+    let imgPrev = $(".img-preview")[0]
+    document.getElementsByClassName('img-preview')[0].setAttribute("style","height:"+pictureWidth+"px")
+    picture.css(
+      {
+        'transform': 'rotate(180deg)',
+      }
+    );
+  });
+
+</script>
+{% endblock %}
